@@ -15,6 +15,8 @@ Currently only setup for one server per user.
 
 Usage
 ---
+Requires python and PostgreSQL
+
 Install NiceGUI, Argon2, and psycopg2
 
 `pip install nicegui argon2-cffi psycopg2-binary`
