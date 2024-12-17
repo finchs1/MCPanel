@@ -1,29 +1,35 @@
 from nicegui import ui, app, Client
 from nicegui.events import KeyEventArguments
 import hashlib
-import json
 import user
 import time
 from pathlib import Path
 import shutil
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+import psycopg2
 
 users = dict()
 
 def login(username: str, pw: str):
-    login_file = open("login.json")
-    logins = json.loads(login_file.read())
-    login_file.close()
-    if username in logins and hashlib.sha256((pw + "jglksjg989534u69__+_)A").encode()).hexdigest() == logins[username]:
-        ui.notify(f"Welcome back, {username}!", type = "positive", progress = True, timeout = 1000)        
-        ui.timer(2, lambda: ui.open("/server"), once = True)
-        app.storage.user["user"] = username
-    else:
-        ui.notify("Login failed!", type = "negative", progress = True, timeout = 1000)
+    cur = conn.cursor()
+    cur.execute("select passhash from users where username = %s", (username, ))
+    passhash = cur.fetchone()
+    ph = PasswordHasher()
+    try:
+        if passhash != None and ph.verify(passhash[0], pw):
+            ui.notify(f"Welcome back, {username}!", type = "positive", progress = True, timeout = 1000)
+            ui.timer(2, lambda: ui.navigate.to("/server"), once = True)
+            app.storage.user["user"] = username
+            return
+    except VerifyMismatchError:
+        pass
+    ui.notify("Login failed!", type = "negative", progress = True, timeout = 1000)
 
 def logout():
     del app.storage.user["user"]
     ui.notify("Logging out...", type = "positive", progress = True, timeout = 1000)
-    ui.timer(2, lambda: ui.open("/"), once = True)
+    ui.timer(2, lambda: ui.navigate.to("/"), once = True)
 
 def handle_key(e: KeyEventArguments):
     if e.key == "Enter" and e.action.keyup:
@@ -63,7 +69,7 @@ async def page_root(client: Client):
     try:
         if app.storage.user["user"]:
             ui.label("Already logged in! Redirecting...").classes("absolute-center")
-            ui.timer(2, lambda: ui.open("/server"), once = True)
+            ui.timer(2, lambda: ui.navigate.to("/server"), once = True)
     except KeyError:
         with ui.card().classes("absolute-center"):
             ui.label("Panel Login").style("font-size: 200%; color: #639d49")
@@ -101,7 +107,7 @@ async def page_server(client: Client):
                     ui.textarea("Enter a command...").classes("w-full").props("outlined autogrow borderless").bind_value(users[username].input)
     except KeyError:
         ui.label("Not logged in! Redirecting to login...").classes("absolute-center")
-        ui.timer(2, lambda: ui.open("/"), once = True)
+        ui.timer(2, lambda: ui.navigate.to("/"), once = True)
 
 @ui.page("/files")
 async def page_settings(client: Client, filepath: str = ""):
@@ -135,6 +141,7 @@ async def page_settings(client: Client, filepath: str = ""):
                             ui.button(icon = "delete_forever", on_click = lambda path_ = path: delete_file(path_.resolve())).props("size=xs").props("color=red")
     except KeyError:
         ui.label("Not logged in! Redirecting to login...").classes("absolute-center")
-        ui.timer(2, lambda: ui.open("/"), once = True)
+        ui.timer(2, lambda: ui.navigate.to("/"), once = True)
 
-ui.run(title = "Minecraft Control Panel", reload = False, dark = None, storage_secret = "gdj98698u9jknkv78%&$^&%*^@*&%*", port = 8080, favicon = "cube.png")#, ssl_keyfile = "privkey.pem", ssl_certfile = "fullchain.pem")
+conn = psycopg2.connect("dbname=panel user=mcpanel")
+ui.run(title = "Minecraft Control Panel", reload = False, dark = None, storage_secret = "1234567890-=][p][p][p][p8767867,.,/;]", port = 8080, favicon = "cube.png")#, ssl_keyfile = "privkey.pem", ssl_certfile = "fullchain.pem")

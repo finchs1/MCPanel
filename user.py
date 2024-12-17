@@ -73,7 +73,7 @@ class server_user:
             server_path = Path(self.name)
             if not server_path.exists():
                 server_path.mkdir()
-                urllib.request.urlretrieve("https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar", f"{self.name}/server.jar")
+                urllib.request.urlretrieve("https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar", f"{self.name}/server.jar")
             self.server_process = subprocess.Popen(["java", "-Xmx1G", "-jar", "server.jar", "nogui"], stdout = subprocess.PIPE, stdin = subprocess.PIPE, cwd = self.name)
             self.update_thread = threading.Thread(target = self.update_server_status)
             self.update_thread.start()
